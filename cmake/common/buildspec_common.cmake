@@ -69,7 +69,13 @@ function(_setup_obs_studio)
   elseif(OS_MACOS)
     set(_cmake_generator "Xcode")
     set(_cmake_arch "-DCMAKE_OSX_ARCHITECTURES:STRING='arm64;x86_64'")
-    set(_cmake_extra "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+    # CMake 4 no longer sets CMAKE_OSX_SYSROOT by default; OBS 30 needs it to detect the SDK version
+    execute_process(
+      COMMAND xcrun --sdk macosx --show-sdk-path
+      OUTPUT_VARIABLE _macos_sdk_path
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    set(_cmake_extra "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+                     "-DCMAKE_OSX_SYSROOT=${_macos_sdk_path}" "-DCMAKE_POLICY_VERSION_MINIMUM=3.5")
     set(_cmake_version "3.0.0")
   endif()
 
