@@ -170,7 +170,8 @@ obs_properties_t *detect_filter_properties(void *data)
 		std::string masking_type_value = obs_data_get_string(settings, "masking_type");
 		if (masking_type_value == "solid_color") {
 			obs_property_set_visible(masking_color, enabled);
-		} else if (masking_type_value == "blur" || masking_type_value == "pixelate") {
+		} else if (masking_type_value == "blur" || masking_type_value == "pixelate" ||
+			   masking_type_value == "blend") {
 			obs_property_set_visible(masking_blur_radius, enabled);
 		}
 		return true;
@@ -186,6 +187,7 @@ obs_properties_t *detect_filter_properties(void *data)
 	obs_property_list_add_string(masking_type, obs_module_text("OutputMask"), "output_mask");
 	obs_property_list_add_string(masking_type, obs_module_text("Blur"), "blur");
 	obs_property_list_add_string(masking_type, obs_module_text("Pixelate"), "pixelate");
+	obs_property_list_add_string(masking_type, obs_module_text("Blend"), "blend");
 	obs_property_list_add_string(masking_type, obs_module_text("Transparent"), "transparent");
 
 	// add color picker for solid color masking
@@ -212,7 +214,8 @@ obs_properties_t *detect_filter_properties(void *data)
 
 		if (masking_type_value == "solid_color") {
 			obs_property_set_visible(masking_color, masking_enabled);
-		} else if (masking_type_value == "blur" || masking_type_value == "pixelate") {
+		} else if (masking_type_value == "blur" || masking_type_value == "pixelate" ||
+			   masking_type_value == "blend") {
 			obs_property_set_visible(masking_blur_radius, masking_enabled);
 		}
 		return true;
@@ -917,6 +920,17 @@ void detect_filter_video_tick(void *data, float seconds)
 	if (tf->preview || tf->maskingEnabled) {
 		cv::Mat frame;
 		cv::cvtColor(imageBGRA, frame, cv::COLOR_BGRA2BGR);
+
+		if (tf->maskingEnabled && tf->maskingType == "blend" && objects.size() > 0) {
+			// fill detected regions with colour from the surrounding pixels,
+			// before any preview boxes are drawn on top
+			std::vector<cv::Rect> blendRects;
+			for (const Object &obj : objects) {
+				blendRects.push_back(cv::Rect(obj.rect));
+			}
+			blendFillRects(frame, blendRects, tf->maskingBlurRadius,
+				       tf->maskingDilateIterations);
+		}
 
 		if (tf->preview && tf->crop_enabled) {
 			// draw the crop rectangle on the frame in a dashed line
