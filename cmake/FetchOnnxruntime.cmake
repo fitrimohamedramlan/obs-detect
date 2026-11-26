@@ -9,10 +9,6 @@ set(CUSTOM_ONNXRUNTIME_HASH
     CACHE STRING "Hash of a downloaded ONNX Runtime tarball")
 
 set(Onnxruntime_VERSION "1.17.1")
-if(APPLE)
-  # 1.17.1 macOS packages are no longer downloadable from GitHub
-  set(Onnxruntime_VERSION "1.23.1")
-endif()
 
 if(CUSTOM_ONNXRUNTIME_URL STREQUAL "")
   set(USE_PREDEFINED_ONNXRUNTIME ON)
@@ -31,8 +27,10 @@ if(USE_PREDEFINED_ONNXRUNTIME)
       "https://github.com/occ-ai/occ-ai-dep-onnxruntime-static-win/releases/download/${Onnxruntime_WINDOWS_VERSION}")
 
   if(APPLE)
-    set(Onnxruntime_URL "${Onnxruntime_BASEURL}/onnxruntime-osx-universal2-${Onnxruntime_VERSION}.tgz")
-    set(Onnxruntime_HASH "")
+    # GitHub no longer serves this package; same file (identical SHA256) mirrored on Hugging Face
+    set(Onnxruntime_URL
+        "https://huggingface.co/csukuangfj/onnxruntime-libs/resolve/main/onnxruntime-osx-universal2-${Onnxruntime_VERSION}.tgz")
+    set(Onnxruntime_HASH SHA256=9FA57FA6F202A373599377EF75064AE568FDA8DA838632B26A86024C7378D306)
   elseif(MSVC)
     set(Onnxruntime_URL "${Onnxruntime_WINDOWS_BASEURL}/onnxruntime-windows-${Onnxruntime_WINDOWS_VERSION}-Release.zip")
     set(OOnnxruntime_HASH SHA256=39E63850D9762810161AE1B4DEAE5E3C02363521273E4B894A9D9707AB626C38)
@@ -50,16 +48,10 @@ else()
   set(Onnxruntime_HASH "${CUSTOM_ONNXRUNTIME_HASH}")
 endif()
 
-if(Onnxruntime_HASH STREQUAL "")
-  set(_onnxruntime_hash_arg "")
-else()
-  set(_onnxruntime_hash_arg URL_HASH ${Onnxruntime_HASH})
-endif()
-
 FetchContent_Declare(
   onnxruntime
   URL ${Onnxruntime_URL}
-  ${_onnxruntime_hash_arg})
+  URL_HASH ${Onnxruntime_HASH})
 FetchContent_MakeAvailable(onnxruntime)
 
 if(APPLE)
